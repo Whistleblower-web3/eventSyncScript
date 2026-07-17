@@ -29,15 +29,12 @@ export const handleBoxCreated = async (
     if (boxId === undefined || userId === undefined) return
 
     // Create new box record
-    // Note: token_id needs to be string-formatted number, cannot use BigInt (cannot serialize)
-    // Note: According to supabase.config.ts, box_info_cid is a required field (can be null)
-    const boxData: DBTypes.Box = {
-        id: boxId,
-        token_id: boxId, // PostgreSQL BIGINT can accept string-formatted numbers
+    const boxData: DBTypes.BoxInsert = {
+        id: Number(boxId),
         minter_id: userId,
         status: 0, // 0=Storing, 1=Selling, 2=Auctioning, 3=Paid, 4=Refunding, 5=Delaying, 6=Published, 7=Blacklisted
         listed_mode: null, // NULL=Not Listed, 1=Selling, 2=Auctioning
-        price: '0',
+        price: 0,
         deadline: 0,
         create_timestamp: timestampToNumber(event.timestamp), // safely convert to seconds
         box_info_cid: null, // Required field, defaults to null
@@ -51,7 +48,7 @@ export const handleBoxCreated = async (
     }
 
     // Use upsert to avoid duplicate key errors (update if box exists, otherwise insert)
-    const { error } = await (supabase.from('boxes') as any)
+    const { error } = await supabase.from('boxes')
         .upsert(boxData)
 
     if (error) {
@@ -86,7 +83,7 @@ export const handleBoxStatusChanged = async (
     if (statusRaw === undefined || statusRaw === null || statusRaw === '') return
 
     const status = Number(statusRaw)
-    const updates: DBTypes.Box = {
+    const updates: DBTypes.BoxUpdate = {
         status
     }
     
@@ -97,9 +94,9 @@ export const handleBoxStatusChanged = async (
         updates.publish_timestamp = timestampToNumber(event.timestamp)
     }
 
-    const { error } = await (supabase.from('boxes') as any)
+    const { error } = await supabase.from('boxes')
         .update(updates)
-        .eq('id', boxId)
+        .eq('id', Number(boxId))
 
     if (error) {
         console.warn(`⚠️  Failed to update box ${boxId} (BoxStatusChanged):`, error.message)
@@ -121,13 +118,13 @@ export const handlePriceChanged = async (
     const price = getEventArgAsString(event, 'price')
     if (price === undefined || price === '') return
 
-    const updates: DBTypes.Box = {
-        price
+    const updates: DBTypes.BoxUpdate = {
+        price: Number(price)
     }
 
-    const { error } = await (supabase.from('boxes') as any)
+    const { error } = await supabase.from('boxes')
         .update(updates)
-        .eq('id', boxId)
+        .eq('id', Number(boxId))
 
     if (error) {
         console.warn(`⚠️  Failed to update box ${boxId} (PriceChanged):`, error.message)
@@ -152,13 +149,13 @@ export const handleDeadlineChanged = async (
         return
     }
 
-    const updates: DBTypes.Box = {
+    const updates: DBTypes.BoxUpdate = {
         deadline: Number(deadline)
     }
 
-    const { error } = await (supabase.from('boxes') as any)
+    const { error } = await supabase.from('boxes')
         .update(updates)
-        .eq('id', boxId)
+        .eq('id', Number(boxId))
 
     if (error) {
         console.warn(`⚠️  Failed to update box ${boxId} (DeadlineChanged):`, error.message)

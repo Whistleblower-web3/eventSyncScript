@@ -16,12 +16,12 @@ export const ensureUserAddressExists = async (
   if (!address) return
 
   // Use upsert directly, won't error even if already exists
-  const addressData: DBTypes.UserAddress = {
+  const addressData: DBTypes.UserAddressInsert = {
     id: address.toLowerCase(),
     is_blacklisted: false,
   }
 
-  const { error } = await (supabase.from('user_addresses') as any).upsert(addressData)
+  const { error } = await supabase.from('user_addresses').upsert(addressData)
 
   if (error) {
     console.warn(`⚠️  Failed to upsert user address ${address}:`, error.message)
@@ -48,12 +48,12 @@ export const ensureAddressExist = async (
     if (addresses.size === 0) return
 
     // Batch upsert to avoid multiple queries
-    const addressRecords = Array.from(addresses).map(address => ({
+    const addressRecords: DBTypes.UserAddressInsert[] = Array.from(addresses).map(address => ({
         id: address.toLowerCase(),
         is_blacklisted: false,
     }))
     
-    const { error } = await (supabase.from('user_addresses') as any).upsert(addressRecords)
+    const { error } = await supabase.from('user_addresses').upsert(addressRecords)
 
     if (error) {
         console.warn(`⚠️  Failed to upsert users:`, error.message)

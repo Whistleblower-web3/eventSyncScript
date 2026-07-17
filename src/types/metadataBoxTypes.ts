@@ -9,7 +9,6 @@ export interface MetadataBoxPayload {
   type_of_crime?: string
   label?: string[]
   title?: string
-  nft_image?: string
   box_image?: string
   country?: string
   state?: string

@@ -11,7 +11,7 @@ export const handlePaused = async (
     scope: RuntimeScope,
     event: DecodedContractEvent<ContractName.FORWARDER, 'Paused'>,
 ): Promise<void> => {
-    const { error } = await (supabase.from('forwarder_state') as any).upsert({
+    const { error } = await supabase.from('forwarder_state').upsert({
         id: 'forwarder',
         paused: true,
     })
@@ -30,7 +30,7 @@ export const handleUnpaused = async (
     scope: RuntimeScope,
     event: DecodedContractEvent<ContractName.FORWARDER, 'Unpaused'>,
 ): Promise<void> => {
-    const { error } = await (supabase.from('forwarder_state') as any).upsert({
+    const { error } = await supabase.from('forwarder_state').upsert({
         id: 'forwarder',
         paused: false,
     })

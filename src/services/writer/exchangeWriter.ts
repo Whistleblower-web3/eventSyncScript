@@ -25,7 +25,7 @@ export const handleBoxListed = async (
 
     const timestamp = timestampToNumber(event.timestamp)
 
-    const updates: DBTypes.Box = {
+    const updates: DBTypes.BoxUpdate = {
         seller_id: userId,
         listed_timestamp: timestamp,
     }
@@ -34,9 +34,9 @@ export const handleBoxListed = async (
         updates.accepted_token = acceptedToken.toLowerCase()
     }
 
-    const { error } = await (supabase.from('boxes') as any)
+    const { error } = await supabase.from('boxes')
         .update(updates)
-        .eq('id', boxId)
+        .eq('id', Number(boxId))
 
     if (error) {
         console.warn(`⚠️  Failed to update box ${boxId} for BoxListed:`, error.message)
@@ -55,14 +55,14 @@ const _updateBuyerPurchaseTimestamp = async (
     userId: string,
     timestamp: number,
 ): Promise<void> => {
-    const updates: DBTypes.Box = {
+    const updates: DBTypes.BoxUpdate = {
         buyer_id: userId,
         purchase_timestamp: timestamp,
     }
 
-    const { error } = await (supabase.from('boxes') as any)
+    const { error } = await supabase.from('boxes')
         .update(updates)
-        .eq('id', boxId)
+        .eq('id', Number(boxId))
 
     if (error) {
         console.warn(`⚠️  Failed to update box ${boxId} buyer_id: ${userId} and purchase_timestamp: ${timestamp}`, error.message)
@@ -107,14 +107,14 @@ export const handleBidPlaced = async (
 
     const boxBidderId = `${boxId}-${userId}`
     
-    const bidderData: DBTypes.BoxBidder = {
+    const bidderData: DBTypes.BoxBidderInsert = {
         id: boxBidderId,
-        box_id: boxId,
+        box_id: Number(boxId),
         bidder_id: userId,
     }
 
     // First insert bidder record
-    const { error: bidderError } = await (supabase.from('box_bidders') as any)
+    const { error: bidderError } = await supabase.from('box_bidders')
         .upsert(bidderData)
 
     if (bidderError) {
@@ -139,14 +139,14 @@ export const handleCompleterAssigned = async (
 
     const timestamp = timestampToNumber(event.timestamp)
 
-    const updates: DBTypes.Box = {
+    const updates: DBTypes.BoxUpdate = {
         completer_id: userId,
         complete_timestamp: timestamp,
     }
 
-    const { error } = await (supabase.from('boxes') as any)
+    const { error } = await supabase.from('boxes')
         .update(updates)
-        .eq('id', boxId)
+        .eq('id', Number(boxId))
 
     if (error) {
         console.warn(`⚠️  Failed to update box ${boxId} for CompleterAssigned:`, error.message)
@@ -168,13 +168,13 @@ export const handleRequestDeadlineChanged = async (
 
     if (!boxId || !deadline) return
 
-    const updates: DBTypes.Box = {
+    const updates: DBTypes.BoxUpdate = {
         request_refund_deadline: Number(deadline),
     }
 
-    const { error } = await (supabase.from('boxes') as any)
+    const { error } = await supabase.from('boxes')
         .update(updates)
-        .eq('id', boxId)
+        .eq('id', Number(boxId))
 
     if (error) {
         console.warn(`⚠️  Failed to update box ${boxId} for RequestDeadlineChanged:`, error.message)
@@ -196,13 +196,13 @@ export const handleReviewDeadlineChanged = async (
 
     if (!boxId || !deadline) return
 
-    const updates: DBTypes.Box = {
+    const updates: DBTypes.BoxUpdate = {
         arbitration_deadline: Number(deadline),
     }
 
-    const { error } = await (supabase.from('boxes') as any)
+    const { error } = await supabase.from('boxes')
         .update(updates)
-        .eq('id', boxId)
+        .eq('id', Number(boxId))
 
     if (error) {
         console.warn(`⚠️  Failed to update box ${boxId} for ArbitrationDeadineChanged:`, error.message)
@@ -224,13 +224,13 @@ export const handleRefundPermitChanged = async (
 
     const permission = getEventArgAsBoolean(event, 'permission')
 
-    const updates: DBTypes.Box = {
+    const updates: DBTypes.BoxUpdate = {
         refund_permit: permission,
     }
 
-    const { error } = await (supabase.from('boxes') as any)
+    const { error } = await supabase.from('boxes')
         .update(updates)
-        .eq('id', boxId)
+        .eq('id', Number(boxId))
 
     if (error) {
         console.warn(`⚠️  Failed to update box ${boxId} for RefundPermitChanged:`, error.message)

@@ -2,34 +2,18 @@ import type { RuntimeScope } from '../../oasisQuery/types/searchScope'
 import { supabase } from '../../config/supabase.config'
 import { fetchMetadataBox } from '../ipfs/fetchMetadataBox'
 import type { MetadataBoxPayload } from '../../types/metadataBoxTypes'
-// import * as DBTypes from '../../types/dataBase'
-
-type MetadataRecord = {
-  id: string
-  type_of_crime?: string
-  label?: string[]
-  title?: string
-  nft_image?: string
-  box_image?: string
-  country?: string
-  state?: string
-  description?: string
-  event_date?: string | null
-  create_date?: string | null
-  timestamp?: number | null
-  mint_method?: string | null
-  file_list?: string[]
-  password?: string | null
-  encryption_slices_metadata_cid?: Record<string, unknown> | null
-  encryption_file_cid?: Record<string, unknown>[] | null
-  encryption_passwords?: Record<string, unknown> | null
-  public_key?: string | null
-}
+import type { MetadataBoxInsert } from '../../types/dataBase'
+import type { Json } from '../../types/database.types'
 
 const toISODate = (value?: string): string | null => {
   if (!value) return null
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+const toJson = (value: unknown): Json | null => {
+  if (value === undefined || value === null) return null
+  return JSON.parse(JSON.stringify(value)) as Json
 }
 
 /**
@@ -39,7 +23,7 @@ const normalizeMetadataRecord = (
   scope: RuntimeScope,
   boxId: string,
   metadata: MetadataBoxPayload,
-): MetadataRecord => {
+): MetadataBoxInsert => {
   // Handle timestamp, ensure BigInt is converted to number
   let timestamp: number | null = null
   if (metadata.timestamp !== undefined && metadata.timestamp !== null) {
@@ -53,24 +37,15 @@ const normalizeMetadataRecord = (
   }
 
   // Sanitize nested objects
-  const encryptionSlicesMetadataCID = metadata.encryption_slices_metadata_cid
-    ? (metadata.encryption_slices_metadata_cid as unknown as Record<string, unknown>)
-    : null
-
-  const encryptionFileCID = metadata.encryption_file_cid
-    ? (metadata.encryption_file_cid as unknown as Record<string, unknown>[])
-    : null
-
-  const encryptionPasswords = metadata.encryption_passwords
-    ? (metadata.encryption_passwords as unknown as Record<string, unknown>)
-    : null
+  const encryptionSlicesMetadataCID = toJson(metadata.encryption_slices_metadata_cid)
+  const encryptionFileCID = metadata.encryption_file_cid?.map(toJson) ?? null
+  const encryptionPasswords = toJson(metadata.encryption_passwords)
 
   return {
-    id: boxId,
+    id: Number(boxId),
     type_of_crime: metadata.type_of_crime,
     label: metadata.label,
     title: metadata.title,
-    nft_image: metadata.nft_image,
     box_image: metadata.box_image,
     country: metadata.country,
     state: metadata.state,
@@ -99,7 +74,7 @@ export const upsertMetadataFromEvents = async (
     const record = normalizeMetadataRecord(scope, boxId, metadata)
     console.log(`✅ Successfully normalized metadata for box ${boxId}`)
 
-    const { error } = await (supabase.from('metadata_boxes') as any).upsert(record)
+    const { error } = await supabase.from('metadata_boxes').upsert(record)
     
     if (error) {
       throw new Error(`Failed to upsert metadata_boxes: ${error.message}`)

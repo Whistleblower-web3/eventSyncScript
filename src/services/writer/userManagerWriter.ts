@@ -29,12 +29,12 @@ const _updateAddressBlacklist = async (
     address: string,
     isBlacklisted: boolean,
 ): Promise<void> => {
-    const addressData: DBTypes.UserAddress = {
+    const addressData: DBTypes.UserAddressInsert = {
         id: address.toLowerCase(),
         is_blacklisted: isBlacklisted,
     }
 
-    const { error } = await (supabase.from('user_addresses') as any).upsert(addressData)
+    const { error } = await supabase.from('user_addresses').upsert(addressData)
 
     if (error) {
         console.warn(`⚠️  Failed to update blacklist status for user ${address}:`, error.message)

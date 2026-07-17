@@ -2,6 +2,7 @@ import type { RuntimeScope } from '../../oasisQuery/types/searchScope'
 import type { RuntimeEvent } from '../../oasisQuery/oasis-nexus/api'
 import { supabase } from '../../config/supabase.config'
 import { getEventArgAsString } from '../../utils/getContractsEventArgs'
+import type { UserInsert } from '../../types/dataBase'
 
 /**
  * Process all events to ensure users records exist
@@ -24,11 +25,11 @@ export const ensureUserIdExist = async (
     if (userIds.size === 0) return
 
     // Batch upsert to avoid multiple queries
-    const userRecords = Array.from(userIds).map(userId => ({
+    const userRecords: UserInsert[] = Array.from(userIds).map(userId => ({
         id: userId,
     }))
     
-    const { error } = await (supabase.from('users') as any).upsert(userRecords)
+    const { error } = await supabase.from('users').upsert(userRecords)
 
     if (error) {
         console.warn(`⚠️  Failed to upsert users:`, error.message)

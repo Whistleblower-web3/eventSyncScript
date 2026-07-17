@@ -1,244 +1,48 @@
-/**
- * Database type definitions for Supabase PostgreSQL.
- * 
- * Defines a single, unified TypeScript interface for each table schema.
- * Matches the Postgres migrations and types.
- */
+// config/dataBase.ts（不再手写，改为从生成文件提取）
+import type { Database } from './database.types';
 
-// ============================================
-// 1. users table
-// ============================================
-export interface User {
-  id?: string; // UserId (bytes32 hex)
-}
+type Tables = Database['public']['Tables'];
+type TableName = keyof Tables;
 
-// ============================================
-// 2. user_addresses table
-// ============================================
-export interface UserAddress {
-  id?: string; // userAddress (address)
-  is_blacklisted?: boolean;
-}
+export type TableRow<T extends TableName> = Tables[T]['Row'];
+export type TableInsert<T extends TableName> = Tables[T]['Insert'];
+export type TableUpdate<T extends TableName> = Tables[T]['Update'];
 
-// ============================================
-// 3. boxes table
-// ============================================
-export interface Box {
-  id?: string; // boxId (uint256 stored as TEXT in PG/JS)
-  token_id?: string; // NFT tokenId (same as boxId, TEXT)
-  box_info_cid?: string | null;
-  private_key?: string | null;
-  price?: string; 
-  deadline?: number; 
-  minter_id?: string;
-  publisher_id?: string | null;
-  seller_id?: string | null;
-  buyer_id?: string | null;
-  completer_id?: string | null;
-  status?: number; // status BETWEEN 0 AND 7
-  listed_mode?: number | null; // listed_mode BETWEEN 1 AND 2
-  accepted_token?: string | null;
-  refund_permit?: boolean | null; 
-  create_timestamp?: number;
-  publish_timestamp?: number | null;
-  listed_timestamp?: number | null;
-  purchase_timestamp?: number | null;
-  complete_timestamp?: number | null;
-  request_refund_deadline?: number | null;
-  arbitration_deadline?: number | null; 
-}
+// 提取各表 Row 类型 — 这就是 SELECT * 的返回类型
+export type Box                  = Database['public']['Tables']['boxes']['Row'];
+export type MetadataBox          = Database['public']['Tables']['metadata_boxes']['Row'];
+export type BoxBidder            = Database['public']['Tables']['box_bidders']['Row'];
+export type BoxStatusStatistical = Database['public']['Tables']['box_status_statistical']['Row'];
+export type BoxReward            = Database['public']['Tables']['box_rewards']['Row'];
+export type BoxUserOrderAmount   = Database['public']['Tables']['box_user_order_amounts']['Row'];
+export type UserReward           = Database['public']['Tables']['user_rewards']['Row'];
+export type RewardsWithdraw      = Database['public']['Tables']['rewards_withdraws']['Row'];
+export type Payment              = Database['public']['Tables']['payments']['Row'];
+export type OrderRefundWithdraw  = Database['public']['Tables']['order_refund_withdraws']['Row'];
+export type RewardsAdded         = Database['public']['Tables']['rewards_addeds']['Row'];
+export type TokenTotalAmount     = Database['public']['Tables']['token_total_amounts']['Row'];
+export type SyncStatus           = Database['public']['Tables']['sync_status']['Row'];
+export type FundManagerState     = Database['public']['Tables']['fund_manager_state']['Row'];
+export type ForwarderState       = Database['public']['Tables']['forwarder_state']['Row'];
+export type User                 = Database['public']['Tables']['users']['Row'];
+export type UserAddress          = Database['public']['Tables']['user_addresses']['Row'];
 
-// ============================================
-// 4. box_bidders table
-// ============================================
-export interface BoxBidder {
-  id?: string; // boxId-UserId
-  box_id?: string;
-  bidder_id?: string;
-}
+// 写入类型 — 必须与 Supabase 生成类型保持同步
+export type BoxInsert                  = TableInsert<'boxes'>;
+export type BoxUpdate                  = TableUpdate<'boxes'>;
+export type MetadataBoxInsert          = TableInsert<'metadata_boxes'>;
+export type UserInsert                 = TableInsert<'users'>;
+export type UserAddressInsert          = TableInsert<'user_addresses'>;
+export type BoxBidderInsert            = TableInsert<'box_bidders'>;
+export type PaymentInsert              = TableInsert<'payments'>;
+export type OrderRefundWithdrawInsert  = TableInsert<'order_refund_withdraws'>;
+export type RewardsAddedInsert          = TableInsert<'rewards_addeds'>;
+export type RewardsWithdrawInsert       = TableInsert<'rewards_withdraws'>;
+export type FundManagerStateInsert     = TableInsert<'fund_manager_state'>;
+export type ForwarderStateInsert       = TableInsert<'forwarder_state'>;
+export type SyncStatusInsert           = TableInsert<'sync_status'>;
+export type SyncStatusUpdate           = TableUpdate<'sync_status'>;
 
-// ============================================
-// 5. metadata_boxes table
-// ============================================
-export interface MetadataBox {
-  id?: string; // boxId
-  type_of_crime?: string | null;
-  label?: string[] | null; // Native text array in PG
-  title?: string | null;
-  nft_image?: string | null;
-  box_image?: string | null;
-  box_image_r2?: string | null;
-  nft_image_r2?: string | null;
-  country?: string | null;
-  state?: string | null;
-  description?: string | null;
-  event_date?: string | null;
-  create_date?: string | null;
-  timestamp?: number | null;
-  mint_method?: 'create' | 'createAndPublish' | null;
-  file_list?: string[] | null; // Native text array in PG
-  password?: string | null;
-  encryption_slices_metadata_cid?: any | null; // JSONB in PG
-  encryption_file_cid?: any[] | null; // JSONB[] array in PG
-  encryption_passwords?: any | null; // JSONB in PG
-  public_key?: string | null;
-}
-
-// ============================================
-// 6. box_status_statistical table
-// ============================================
-export interface BoxStatusStatistical {
-  id: 'box_status_statistical'; // Singleton ID
-  total_supply?: string;
-  status_0_supply?: string;
-  status_1_supply?: string;
-  status_2_supply?: string;
-  status_3_supply?: string;
-  status_4_supply?: string;
-  status_5_supply?: string;
-  status_6_supply?: string;
-  status_7_supply?: string;
-}
-
-// ============================================
-// 7. fund_manager_state table
-// ============================================
-export interface FundManagerState {
-  id: 'fundManager'; // Singleton ID
-  paused?: boolean;
-}
-
-// ============================================
-// 8. forwarder_state table
-// ============================================
-export interface ForwarderState {
-  id: 'forwarder'; // Singleton ID
-  paused?: boolean;
-}
-
-// ============================================
-// 9. sync_status table
-// ============================================
-export interface SyncStatus {
-  contract_name?: string;
-  last_synced_block?: number;
-  last_synced_at?: string;
-}
-
-// ============================================
-// 10. payments table
-// ============================================
-export interface Payment {
-  id: string; // Transaction hash - log index
-  box_id: string;
-  user_id: string;
-  pay_type: 'OrderAmount' | 'DelayFee';
-  token: string;
-  amount: string;
-  timestamp: number;
-  transaction_hash: string;
-}
-
-// ============================================
-// 11. order_refund_withdraws table
-// ============================================
-export interface OrderRefundWithdraw {
-  id: string; // eventName-withdrawType-Transaction hash
-  token: string;
-  box_id_list: string[]; // Native array in PG
-  user_id: string;
-  withdraw_type: 'Order' | 'Refund';
-  amount: string;
-  timestamp: number;
-  transaction_hash: string;
-}
-
-// ============================================
-// 12. box_user_order_amounts table
-// ============================================
-export interface BoxUserOrderAmount {
-  id?: string; // user_id-box_id-token
-  box_id?: string;
-  user_id?: string;
-  token?: string;
-  currentAmount?: string;
-}
-
-// ============================================
-// 13. rewards_addeds table
-// ============================================
-export interface RewardsAdded {
-  id: string; // eventName-reward_added-Transaction hash
-  box_id: string;
-  user_id: string;
-  token: string;
-  amount: string;
-  timestamp: number;
-  transaction_hash: string;
-}
-
-// ============================================
-// 14. box_rewards table
-// ============================================
-export interface BoxReward {
-  id?: string; // box_id-user_id-token
-  box_id?: string;
-  user_id?: string;
-  token?: string;
-  totalAmount?: string;
-}
-
-// ============================================
-// 15. rewards_withdraws table
-// ============================================
-export interface RewardsWithdraw {
-  id?: string; // user_id-rewards-token
-  user_id?: string;
-  token?: string;
-  amount?: string;
-}
-
-// ============================================
-// 16. user_rewards table
-// ============================================
-export interface UserReward {
-  id?: string; // user_id-user_rewards-token
-  user_id?: string;
-  token?: string;
-  currentAmount?: string;
-  totalAmount?: string;
-}
-
-// ============================================
-// 17. token_total_amounts table
-// ============================================
-export interface TokenTotalAmount {
-  id?: string; // fundType-tokenAddress
-  fund_type?: 'PaymentOrder' | 'PaymentDelayFee' | 'OrderWithdraw' | 'RefundWithdraw' | 'RewardAdded' | 'RewardWithdraw';
-  token?: string;
-  fund_manager_id?: string;
-  amount?: string;
-}
-
-/**
- * Main Database mapping for general lookup.
- */
-// export interface Database {
-//   users?: User;
-//   user_addresses?: UserAddress;
-//   boxes?: Box;
-//   box_bidders?: BoxBidder;
-//   metadata_boxes?: MetadataBox;
-//   box_status_statistical?: BoxStatusStatistical;
-//   fund_manager_state?: FundManagerState;
-//   forwarder_state?: ForwarderState;
-//   sync_status?: SyncStatus;
-//   payments?: Payment;
-//   order_refund_withdraws?: OrderRefundWithdraw;
-//   box_user_order_amounts?: BoxUserOrderAmount;
-//   rewards_addeds?: RewardsAdded;
-//   box_rewards?: BoxReward;
-//   rewards_withdraws?: RewardsWithdraw;
-//   user_rewards?: UserReward;
-//   token_total_amounts?: TokenTotalAmount;
-// }
+// RPC 函数类型
+export type SearchBoxResult = Database['public']['Functions']['search_boxes']['Returns'][number];
+export type SearchBoxArgs   = Database['public']['Functions']['search_boxes']['Args'];

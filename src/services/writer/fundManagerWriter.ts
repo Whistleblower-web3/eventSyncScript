@@ -7,6 +7,12 @@ import { getEventArgAsString, DecodedContractEvent } from '../../utils/getContra
 import type { RuntimeEvent } from '../../oasisQuery/oasis-nexus/api'
 import type { FundManagerEventType } from '../../contractsConfig/eventSignatures/eventType'
 import { timestampToNumber } from '../../utils/timestampToNumber'
+import type {
+    OrderRefundWithdrawInsert,
+    PaymentInsert,
+    RewardsAddedInsert,
+    RewardsWithdrawInsert,
+} from '../../types/dataBase'
 
 /**
  * Handle OrderAmountPaid event
@@ -28,18 +34,18 @@ export const handlePayment = async (
     const logIndex = (event.body as any)?.log_index ?? event.tx_index ?? 0
     const recordId = `${txHash}-${logIndex}`
 
-    const paymentData = { 
+    const paymentData: PaymentInsert = { 
         id: recordId,
-        box_id: boxId,
+        box_id: Number(boxId),
         user_id: userId,
         token: token.toLowerCase(),
-        amount: amount,
+        amount: Number(amount),
         pay_type: 'OrderAmount', // OrderAmount CHECK constraint
         timestamp: timestamp,
         transaction_hash: txHash,
     }
 
-    const { error } = await (supabase.from('payments') as any).upsert(paymentData)
+    const { error } = await supabase.from('payments').upsert(paymentData)
 
     if (error) {
         console.error(`❌ Failed to insert payment for box ${boxId}:`, error.message)
@@ -64,25 +70,23 @@ export const handleOrderAmountWithdraw = async (
 
     if (!listRaw || !token || !userId || !amount) return
 
-    const boxList = Array.isArray(listRaw)
-        ? listRaw.map(item => String(item))
-        : [String(listRaw)]
+    const boxList = (Array.isArray(listRaw) ? listRaw : [listRaw]).map(item => Number(item))
 
     const txHash = event.eth_tx_hash || event.tx_hash || '0x00'
     const recordId = `OrderAmountWithdraw-Order-${txHash}`
 
-    const withdrawData = {
+    const withdrawData: OrderRefundWithdrawInsert = {
         id: recordId,
         token: token.toLowerCase(),
         box_id_list: boxList,
         user_id: userId,
         withdraw_type: 'Order', // NOT NULL check constraint
-        amount: amount,
+        amount: Number(amount),
         timestamp: timestampToNumber(event.timestamp),
         transaction_hash: txHash,
     }
 
-    const { error } = await (supabase.from('order_refund_withdraws') as any).upsert(withdrawData)
+    const { error } = await supabase.from('order_refund_withdraws').upsert(withdrawData)
 
     if (error) {
         console.error(`❌ Failed to insert withdraw for user ${userId}:`, error.message)
@@ -102,25 +106,23 @@ export const handleRefundAmountWithdraw = async (
 
     if (!listRaw || !token || !userId || !amount) return
 
-    const boxList = Array.isArray(listRaw)
-        ? listRaw.map(item => String(item))
-        : [String(listRaw)]
+    const boxList = (Array.isArray(listRaw) ? listRaw : [listRaw]).map(item => Number(item))
 
     const txHash = event.eth_tx_hash || event.tx_hash || '0x00'
     const recordId = `RefundAmountWithdraw-Refund-${txHash}`
 
-    const withdrawData = {
+    const withdrawData: OrderRefundWithdrawInsert = {
         id: recordId,
         token: token.toLowerCase(),
         box_id_list: boxList,
         user_id: userId,
         withdraw_type: 'Refund', // NOT NULL check constraint
-        amount: amount,
+        amount: Number(amount),
         timestamp: timestampToNumber(event.timestamp),
         transaction_hash: txHash,
     }
 
-    const { error } = await (supabase.from('order_refund_withdraws') as any).upsert(withdrawData)
+    const { error } = await supabase.from('order_refund_withdraws').upsert(withdrawData)
 
     if (error) {
         console.error(`❌ Failed to insert refund withdraw for user ${userId}:`, error.message)
@@ -147,17 +149,17 @@ export const handleRewardAdded = async (
     const txHash = event.eth_tx_hash || event.tx_hash || '0x00'
     const recordId = `RewardAdded-${userId}-${txHash}`
 
-    const rewardData = {
+    const rewardData: RewardsAddedInsert = {
         id: recordId,
-        box_id: boxId,
+        box_id: Number(boxId),
         token: token.toLowerCase(),
         user_id: userId, // include required user_id
-        amount: amount,
+        amount: Number(amount),
         timestamp: timestampToNumber(event.timestamp),
         transaction_hash: txHash,
     }
 
-    const { error } = await (supabase.from('rewards_addeds') as any).upsert(rewardData)
+    const { error } = await supabase.from('rewards_addeds').upsert(rewardData)
 
     if (error) {
         console.error(`❌ Failed to insert reward for box ${boxId}:`, error.message)
@@ -183,14 +185,17 @@ export const handleRewardsWithdraw = async (
     const recordId = `${userId}-rewards-${token.toLowerCase()}`
 
     // rewards_withdraws table database schema: id, user_id, token, amount
-    const withdrawData = {
+    const txHash = event.eth_tx_hash || event.tx_hash || '0x00'
+    const withdrawData: RewardsWithdrawInsert = {
         id: recordId,
         user_id: userId,
         token: token.toLowerCase(),
-        amount: amount,
+        amount: Number(amount),
+        timestamp: timestampToNumber(event.timestamp),
+        transaction_hash: txHash,
     }
 
-    const { error } = await (supabase.from('rewards_withdraws') as any).upsert(withdrawData)
+    const { error } = await supabase.from('rewards_withdraws').upsert(withdrawData)
 
     if (error) {
         console.error(`❌ Failed to insert reward withdraw for user ${userId}:`, error.message)
@@ -209,7 +214,7 @@ export const handleFundManagerState = async (
 ): Promise<void> => {
     const isPaused = event.evm_log_name === 'Paused'
 
-    const { error } = await (supabase.from('fund_manager_state') as any).upsert({
+    const { error } = await supabase.from('fund_manager_state').upsert({
         id: 'fundManager',
         paused: isPaused,
     })
@@ -226,7 +231,7 @@ export const handleFundManagerState = async (
  * This is required by token_total_amounts table foreign key constraint
  */
 export const ensureFundManagerStateExists = async (scope: RuntimeScope): Promise<void> => {
-    const { error } = await (supabase.from('fund_manager_state') as any).upsert({
+    const { error } = await supabase.from('fund_manager_state').upsert({
         id: 'fundManager',
     })
 

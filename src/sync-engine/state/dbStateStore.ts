@@ -78,7 +78,7 @@ export const updateSyncStatus = async (
   lastBlock: number,
 ): Promise<void> => {
   try {
-    const { error } = await (supabase.from('sync_status') as any).upsert({
+    const { error } = await supabase.from('sync_status').upsert({
       contract_name: contract,
       last_synced_block: lastBlock,
       last_synced_at: new Date().toISOString(),
