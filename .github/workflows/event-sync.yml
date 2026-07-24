@@ -1,17 +1,7 @@
 name: Event Sync
 
 on:
-  repository_dispatch:
-    types: [sync-event]
   workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *' # UTC time, every 5 minutes
-  push:
-    branches:
-      - main
-    paths:
-      - '**'
-      - '.github/workflows/event-sync.yml'
 
 jobs:
   sync-events:
