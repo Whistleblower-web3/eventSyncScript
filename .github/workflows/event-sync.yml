@@ -2,6 +2,23 @@ name: Event Sync
 
 on:
   workflow_dispatch:
+    inputs:
+      chain_id:
+        description: Chain ID selected by the Worker
+        required: true
+        type: string
+      request_id:
+        description: Unique Worker dispatch ID, echoed by the callback
+        required: true
+        type: string
+      tx_hash:
+        description: Optional transaction that prompted this sync
+        required: false
+        type: string
+
+concurrency:
+  group: event-sync-${{ inputs.chain_id }}
+  cancel-in-progress: false
 
 jobs:
   sync-events:
@@ -23,40 +40,40 @@ jobs:
         run: npm ci
 
       - name: Run event sync script
+        id: sync
         env:
           # Supabase configuration (read from GitHub Secrets)
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           
           # Event sync configuration
           EVENT_SYNC_USE_PROXY: 'false'
           EVENT_SYNC_SAVE_JSON: 'false'
           
-          # Dynamically set network based on triggered chainId (default to testnet)
-          EVENT_SYNC_NETWORK: ${{ (github.event.client_payload.chainId == '23294') && 'mainnet' || 'testnet' }}
-          
           # Optional: Custom sync configuration
           EVENT_SYNC_FROM_BLOCK: ${{ secrets.EVENT_SYNC_FROM_BLOCK }}
           EVENT_SYNC_LIMIT: ${{ secrets.EVENT_SYNC_LIMIT }}
           EVENT_SYNC_BATCH_SIZE: ${{ secrets.EVENT_SYNC_BATCH_SIZE }}
         run: npm start
-        continue-on-error: false
+        continue-on-error: true
 
-      - name: Notify Worker of Success
-        if: ${{ success() && github.event.client_payload.chainId != '' }}
+      - name: Notify Worker
+        if: ${{ always() }}
+        env:
+          SYNC_STATUS: ${{ steps.sync.outcome == 'success' && 'success' || 'failed' }}
         run: |
-          curl -X POST "${{ secrets.SYNC_WORKER_URL }}/sync-callback" \
+          curl --fail --retry 3 --retry-all-errors -X POST "${{ secrets.SYNC_WORKER_URL }}/sync-callback" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SYNC_CLIENT_SECRET }}" \
-            -d '{"chainId": "${{ github.event.client_payload.chainId }}", "status": "success"}'
+            -d '{"chainId": "${{ inputs.chain_id }}", "requestId": "${{ inputs.request_id }}", "status": "'"$SYNC_STATUS"'"}'
 
-      - name: Notify Worker of Failure
-        if: ${{ failure() && github.event.client_payload.chainId != '' }}
+      - name: Mark workflow failed when synchronization failed
+        if: ${{ always() }}
+        env:
+          SYNC_OUTCOME: ${{ steps.sync.outcome }}
         run: |
-          curl -X POST "${{ secrets.SYNC_WORKER_URL }}/sync-callback" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SYNC_CLIENT_SECRET }}" \
-            -d '{"chainId": "${{ github.event.client_payload.chainId }}", "status": "failed"}'
+          test "$SYNC_OUTCOME" = "success"
 
       - name: Upload logs on failure
         if: failure()
